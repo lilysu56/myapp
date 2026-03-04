@@ -3,7 +3,8 @@ import { SearchInput } from "./components/SearchInput";
 import { StockCard } from "./components/StockCard";
 import { StockChart } from "./components/StockChart";
 import { getStockAnalysis } from "./services/geminiService";
-import { Sparkles, TrendingUp, LayoutDashboard, Star, Info, AlertCircle } from "lucide-react";
+import { fetchStockData } from "./services/stockService";
+import { Sparkles, TrendingUp, LayoutDashboard, Star, Info, AlertCircle, Settings, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "./lib/utils";
 
@@ -20,16 +21,21 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [finnhubKey, setFinnhubKey] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
 
-  // Load watchlist from local storage
+  // Load config from local storage
   useEffect(() => {
-    const saved = localStorage.getItem("watchlist");
-    if (saved) {
-      try {
-        setWatchlist(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse watchlist");
-      }
+    const savedWatchlist = localStorage.getItem("watchlist");
+    const savedKey = localStorage.getItem("finnhub_key");
+    
+    if (savedWatchlist) {
+      try { setWatchlist(JSON.parse(savedWatchlist)); } catch (e) {}
+    }
+    if (savedKey) {
+      setFinnhubKey(savedKey);
+    } else {
+      setShowSettings(true); // Prompt for key if missing
     }
   }, []);
 
@@ -38,25 +44,28 @@ export default function App() {
     localStorage.setItem("watchlist", JSON.stringify(watchlist));
   }, [watchlist]);
 
+  const saveApiKey = (key: string) => {
+    setFinnhubKey(key);
+    localStorage.setItem("finnhub_key", key);
+    setShowSettings(false);
+  };
+
   const handleSearch = async (symbol: string) => {
+    if (!finnhubKey) {
+      setError("Please set your Finnhub API Key in settings first.");
+      setShowSettings(true);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setAiAnalysis(null);
     try {
-      const res = await fetch(`/api/stock/${symbol}`);
-      const data = await res.json();
-      
-      if (data.error) {
-        setError(data.error);
-        setSearchResult(null);
-      } else if (!data.quote.c) {
-        setError("Stock symbol not found.");
-        setSearchResult(null);
-      } else {
-        setSearchResult({ symbol, ...data });
-      }
+      const data = await fetchStockData(symbol, finnhubKey);
+      setSearchResult({ symbol, ...data });
     } catch (err) {
-      setError("Failed to fetch stock data. Please check your connection.");
+      setError("Stock symbol not found or API error. Please check your Ticker and API Key.");
+      setSearchResult(null);
     } finally {
       setIsLoading(false);
     }
@@ -102,26 +111,78 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f8f9fa] text-zinc-900 font-sans selection:bg-zinc-900 selection:text-white">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-bottom border-black/5 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-zinc-900 rounded-xl flex items-center justify-center">
-              <TrendingUp size={18} className="text-white" />
+      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-black/5 px-4 md:px-6 py-3">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 md:items-center justify-between">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-zinc-900 rounded-xl flex items-center justify-center">
+                <TrendingUp size={18} className="text-white" />
+              </div>
+              <span className="font-bold text-lg tracking-tight">Stock Pulse</span>
             </div>
-            <span className="font-bold text-xl tracking-tight">US Stock Pulse</span>
+            <div className="md:hidden">
+              <SearchInput onSearch={handleSearch} isLoading={isLoading} />
+            </div>
           </div>
+          
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-zinc-500">
             <a href="#" className="text-zinc-900">Dashboard</a>
             <a href="#" className="hover:text-zinc-900 transition-colors">Markets</a>
-            <a href="#" className="hover:text-zinc-900 transition-colors">News</a>
           </div>
+          
           <div className="flex items-center gap-4">
-            <SearchInput onSearch={handleSearch} isLoading={isLoading} />
+            <button 
+              onClick={() => setShowSettings(!showSettings)}
+              className="p-2 rounded-xl hover:bg-zinc-100 text-zinc-500 transition-colors"
+            >
+              <Settings size={20} />
+            </button>
+            <div className="hidden md:block">
+              <SearchInput onSearch={handleSearch} isLoading={isLoading} />
+            </div>
           </div>
         </div>
       </nav>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
+        <AnimatePresence>
+          {showSettings && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-8 overflow-hidden"
+            >
+              <div className="bg-zinc-900 text-white p-6 rounded-3xl shadow-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold flex items-center gap-2">
+                    <Settings size={18} />
+                    API Settings
+                  </h3>
+                  <button onClick={() => setShowSettings(false)}><X size={20} /></button>
+                </div>
+                <p className="text-zinc-400 text-sm mb-4">Enter your Finnhub API Key to fetch real-time data. Your key is stored locally in your browser.</p>
+                <div className="flex gap-2">
+                  <input 
+                    type="password"
+                    placeholder="Finnhub API Key..."
+                    value={finnhubKey}
+                    onChange={(e) => setFinnhubKey(e.target.value)}
+                    className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-600"
+                  />
+                  <button 
+                    onClick={() => saveApiKey(finnhubKey)}
+                    className="bg-white text-zinc-900 px-6 py-2 rounded-xl text-sm font-bold hover:bg-zinc-200 transition-colors"
+                  >
+                    Save
+                  </button>
+                </div>
+                <a href="https://finnhub.io/register" target="_blank" className="text-[10px] text-zinc-500 mt-2 inline-block hover:underline">Don't have a key? Get one for free at Finnhub.io</a>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* Left Column: Search Result & Main View */}

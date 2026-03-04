@@ -17,16 +17,16 @@ export const SearchInput: React.FC<SearchInputProps> = ({ onSearch, isLoading })
   };
 
   return (
-    <form onSubmit={handleSubmit} className="relative w-full max-w-md">
+    <form onSubmit={handleSubmit} className="relative w-full md:max-w-md">
       <div className="relative">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search Ticker (e.g. NVDA, AAPL)..."
-          className="w-full bg-white border border-black/5 rounded-2xl py-3 pl-12 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all shadow-sm"
+          placeholder="Ticker (NVDA)..."
+          className="w-full bg-white border border-black/5 rounded-2xl py-2.5 pl-10 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/5 transition-all shadow-sm"
         />
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
         {query && (
           <button
             type="button"

@@ -1,0 +1,5 @@
+{
+  "name": "US Stock Pulse",
+  "description": "A modern US stock market dashboard with real-time quotes, interactive charts, and AI-powered insights.",
+  "requestFramePermissions": []
+}

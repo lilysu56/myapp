@@ -1,17 +1,18 @@
 import { defineConfig } from 'vite'
-import { fileURLToPath, URL } from 'node:url'
-import path from 'node:path'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+import path from "path"
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  // 設定為相對路徑，解決白屏問題
-  base: './',
-  
+  base: './', // 確保路徑正確
+  plugins: [
+    react(),
+    tailwindcss(), // 👈 這裡啟動了新版 Tailwind v4
+  ],
   resolve: {
     alias: {
-      // 關鍵修改：讓 '@' 代表專案的「根目錄」，而不是 src
-      // 這樣你的程式碼寫 @/src/lib/utils 才會變成 正確的 src/lib/utils
-      '@': path.resolve(__dirname, './'),
-    }
-  }
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
 })

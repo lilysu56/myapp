@@ -5,14 +5,16 @@ import path from "path"
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: './', // 確保路徑正確
+  base: './', 
   plugins: [
     react(),
-    tailwindcss(), // 👈 這裡啟動了新版 Tailwind v4
+    tailwindcss(), // 啟動新版 Tailwind
   ],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      // 關鍵修改：讓 @ 代表「根目錄」，而不是 src
+      // 這樣你的程式碼寫 @/src/lib/utils 就會正確變成 根目錄/src/lib/utils
+      "@": path.resolve(__dirname, "./"), 
     },
   },
 })
